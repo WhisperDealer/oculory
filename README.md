@@ -1,4 +1,4 @@
-# claudemodenv — a Skyrim mod-development template
+# Aircanaeum — a Skyrim mod-development template
 
 A version-controlled workspace for building SkyrimSE mods as **text**. It uses
 [Spriggit](https://github.com/Mutagen-Modding/Spriggit) to convert Bethesda plugin files
