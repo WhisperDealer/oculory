@@ -1,0 +1,16 @@
+{
+  "$comment": "Shared, committed Claude Code settings for this workspace. Personal overrides belong in .claude/settings.local.json (gitignored).",
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "powershell -NoProfile -ExecutionPolicy Bypass -File \"$CLAUDE_PROJECT_DIR/build/Test-RecordYaml.ps1\" -FromHook"
+          }
+        ]
+      }
+    ]
+  }
+}

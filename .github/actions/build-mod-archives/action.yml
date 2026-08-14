@@ -1,0 +1,56 @@
+name: Build mod archives
+description: >
+  Set up the Spriggit CLI, verify FOMOD <-> manifest parity, and build the release .7z archives
+  (addon + patch collection) from Spriggit YAML and the committed .pex into build/dist/.
+  Assumes the repository is already checked out.
+
+inputs:
+  spriggit-version:
+    description: Spriggit CLI release to download/cache.
+    required: false
+    default: '0.40.0'
+  github-token:
+    description: Token used by `gh release download` to fetch the Spriggit CLI.
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Cache Spriggit CLI
+      id: cache-spriggit
+      uses: actions/cache@v4
+      with:
+        path: .tools/spriggit
+        key: spriggit-cli-${{ inputs.spriggit-version }}
+
+    - name: Download Spriggit CLI
+      if: steps.cache-spriggit.outputs.cache-hit != 'true'
+      shell: pwsh
+      env:
+        GH_TOKEN: ${{ inputs.github-token }}
+      run: |
+        New-Item -ItemType Directory -Force .tools/spriggit | Out-Null
+        gh release download "${{ inputs.spriggit-version }}" `
+          --repo Mutagen-Modding/Spriggit `
+          --pattern 'SpriggitCLI.zip' `
+          --dir .tools `
+          --clobber
+        $zip = Get-ChildItem .tools -Filter 'SpriggitCLI.zip' | Select-Object -First 1
+        if (-not $zip) { throw "Spriggit Windows CLI zip (SpriggitCLI.zip) not found for ${{ inputs.spriggit-version }}" }
+        Expand-Archive $zip.FullName -DestinationPath .tools/spriggit -Force
+
+    - name: Locate Spriggit.CLI.exe
+      id: spriggit
+      shell: pwsh
+      run: |
+        $exe = Get-ChildItem .tools/spriggit -Recurse -Filter 'Spriggit.CLI.exe' | Select-Object -First 1
+        if (-not $exe) { throw "Spriggit.CLI.exe not found under .tools/spriggit" }
+        "cli=$($exe.FullName)" >> $env:GITHUB_OUTPUT
+
+    - name: Verify FOMOD <-> manifest parity
+      shell: pwsh
+      run: pwsh build/build.ps1 -CheckFomod
+
+    - name: Build archives
+      shell: pwsh
+      run: pwsh build/build.ps1 -SpriggitCli "${{ steps.spriggit.outputs.cli }}"

@@ -1,0 +1,49 @@
+FormKey: 09BC43:Skyrim.esm
+VersionControl: 944407
+EditorID: LItemWeaponSwordBlacksmith
+FormVersion: 40
+Version2: 7
+Flags:
+- CalculateFromAllLevelsLessThanOrEqualPlayer
+- CalculateForEachItemInCount
+Entries:
+- Data:
+    Level: 1
+    Reference: 013989:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 1
+    Reference: 013989:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 1
+    Reference: 013989:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 1
+    Reference: 013989:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 6
+    Reference: 013991:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 12
+    Reference: 013999:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 19
+    Reference: 0139A1:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 27
+    Reference: 0139A9:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 36
+    Reference: 0139B1:Skyrim.esm
+    Count: 1
+- Data:
+    Level: 1
+    Reference: 000800:ExampleMod.esp
+    Count: 1

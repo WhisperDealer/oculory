@@ -1,0 +1,17 @@
+{
+  "$comment": "Single source of truth for the CI/local build. Each release lists the Spriggit YAML folders to deserialize and where the built .esp lands inside the release (FOMOD) tree. 'dest' paths must match the source= attributes in that release's fomod/ModuleConfig.xml (verified by build/build.ps1 -CheckFomod). Paths are repo-relative, and every mod's sources live under src/<ModName>/. Optional per-release keys: 'scripts' {from,to} bulk-copies committed .pex; 'allowUnreferencedPlugins' silences the warning about a plugin the FOMOD never installs; 'fomod': false ships a plain archive with no installer - the right shape whenever the install has nothing to ask (a single .esp with no options), and build/staging/<name>/fomod/ must then not exist. Optional per-plugin key: 'scripts' [{from,to}] copies individual .pex. Add releases with the /mod-new-plugin skill.",
+  "releases": [
+    {
+      "name": "Example Mod",
+      "archiveName": "Example Mod",
+      "fomod": false,
+      "scripts": {
+        "from": "src/ExampleMod/Scripts/compiled",
+        "to": "Scripts"
+      },
+      "plugins": [
+        { "yamlSource": "src/ExampleMod/ExampleModESP", "dest": "ExampleMod.esp" }
+      ]
+    }
+  ]
+}

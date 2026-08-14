@@ -1,0 +1,58 @@
+{
+  "$comment": "Workspace tool paths + settings. COPY to tools.json (gitignored) and fill in for your machine. Populate/refresh automatically with the `modlist-install` skill, or edit by hand. Use forward slashes; they work fine in PowerShell.",
+
+  "modlistRoot": "",
+  "_modlistRoot_help": "Root of the installed Wabbajack modlist (the MO2 instance: contains ModOrganizer.exe, mods/, profiles/, tools/). Leave blank if you are not using a modlist and set the explicit tool paths below instead.",
+
+  "gameRoot": "C:/Gaming/steamapps/common/Skyrim Special Edition",
+  "_gameRoot_help": "Skyrim SE game folder. With a Wabbajack list this is usually <modlistRoot>/Stock Game (or 'Game Root' / 'Stock Game Folder'), a self-contained copy so the modlist never touches your Steam install.",
+
+  "gameDataDir": "C:/Gaming/steamapps/common/Skyrim Special Edition/Data",
+  "gameSourceScripts": "C:/Gaming/steamapps/common/Skyrim Special Edition/Data/Source/Scripts",
+  "_gameSourceScripts_help": "Vanilla Papyrus .psc imports + TESV_Papyrus_Flags.flg. Extract <gameDataDir>/Scripts.zip here once if the folder is missing.",
+  "papyrusFlags": "TESV_Papyrus_Flags.flg",
+
+  "spriggitCli": "C:/Tools/SpriggitCLI/Spriggit.CLI.exe",
+  "bsab": "C:/Tools/BSA Browser/bsab.exe",
+  "champollion": "C:/Tools/Champollion-x64/Champollion.exe",
+  "papyrusCompiler": "C:/Gaming/steamapps/common/Skyrim Special Edition/Papyrus Compiler/PapyrusCompiler.exe",
+  "creationKit": "C:/Gaming/steamapps/common/Skyrim Special Edition/CreationKit.exe",
+
+  "sseedit": "",
+  "_sseedit_help": "SSEEdit.exe (xEdit), for manual conflict/error review. Reference key; no skill wraps it. Wabbajack dev lists ship it under <modlistRoot>/tools/xEdit/.",
+  "sseeditQuickAutoClean": "",
+  "_sseeditQuickAutoClean_help": "SSEEditQuickAutoClean.exe — headless master cleaner (strips ITMs/UDRs/deleted refs). Same xEdit folder. Reference key; no skill wraps it.",
+  "xeditScriptsDir": "",
+  "_xeditScriptsDir_help": "xEdit 'Edit Scripts' folder (contains 'Check for Errors.pas' etc.) — pass to SSEEdit -script when running it by hand. Reference key; no skill wraps it.",
+  "bsarch": "",
+  "_bsarch_help": "BSArch64.exe — CLI BSA/BA2 packer (bundled in xEdit's folder). Reference key; no skill wraps it yet.",
+  "synthesis": "",
+  "_synthesis_help": "Synthesis.exe — Mutagen patcher pipeline runner. Reference key; no skill wraps it yet.",
+  "resaver": "",
+  "_resaver_help": "ReSaver.exe (Fallrim Tools) — savegame script cleaner (GUI-primary). Reference key; no skill wraps it yet.",
+  "cao": "",
+  "_cao_help": "Cathedral Assets Optimizer .exe — mesh/texture optimization. Reference key; no skill wraps it yet.",
+  "nifskope": "",
+  "_nifskope_help": "NifSkope.exe — .nif mesh viewer/editor. Reference key; no skill wraps it yet.",
+  "octagon": "",
+  "_octagon_help": "Octagon.exe — BSA/texture GUI tool. Reference key; no skill wraps it yet.",
+  "bae": "",
+  "_bae_help": "bae.exe (Beth Archive Extract) — alternate .bsa/.ba2 extractor STD ships instead of BSA Browser. Reference key; `bsa-extract` uses `bsab`.",
+
+  "modlistsRoot": "C:/modding/modlists",
+  "_modlistsRoot_help": "Parent folder of MO2 instances you install built mods into for testing (e.g. STD, LoreRim, Baseline). May be the same as modlistRoot's parent.",
+
+  "modsDir": "",
+  "_modsDir_help": "The MO2 'mods' folder the `mod-deploy` skill copies dist/<ModName>/ into, e.g. C:/modding/modlists/STD/mods. Set this rather than letting anything search for it.",
+  "deployModName": "",
+  "_deployModName_help": "EXACT folder name to create under modsDir, e.g. 'My-Mod-Name'. Frequently differs from the .esp name (spaces/dashes/case). A mismatch here is the #1 cause of 'my change never showed up in-game' - MO2 simply doesn't see the folder and the game runs fine without it.",
+
+  "spriggit": {
+    "gameRelease": "SkyrimSE",
+    "packageName": "Spriggit.Yaml.Skyrim",
+    "packageVersion": "0.40.0"
+  },
+
+  "importDirs": [],
+  "_importDirs_help": "Extra Papyrus Source/Scripts dirs (SKSE, SkyUI, MCM, other mods) appended to the compiler -i path. Add as you discover them."
+}

@@ -1,0 +1,137 @@
+name: PR Test Build
+
+# On every PR open/update, builds the two release archives (addon + patch collection) and attaches
+# them to the PR as a downloadable GitHub Actions artifact + a sticky comment linking to it. Each new
+# push deletes the previous artifact and uploads a fresh one; merging/closing the PR deletes it.
+# The main/tag release pipeline lives in build.yml and is unaffected.
+# Shared build steps live in the composite action .github/actions/build-mod-archives/.
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened, closed]
+
+permissions:
+  contents: read
+  pull-requests: write   # sticky comment
+  actions: write         # delete superseded / merged-PR artifacts
+
+concurrency:
+  group: pr-build-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  SPRIGGIT_VERSION: '0.40.0'
+  ARTIFACT_NAME: pr-${{ github.event.pull_request.number }}-test-builds
+  COMMENT_MARKER: '<!-- pr-test-build -->'
+
+jobs:
+  build:
+    if: github.event.action != 'closed'
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Delete previous test-build artifacts for this PR
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $arts = gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" | ConvertFrom-Json
+          foreach ($a in ($arts.artifacts | Where-Object { $_.name -eq "$env:ARTIFACT_NAME" })) {
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$($a.id)"
+            Write-Host "Deleted old artifact $($a.id)"
+          }
+
+      - name: Build mod archives
+        uses: ./.github/actions/build-mod-archives
+        with:
+          spriggit-version: ${{ env.SPRIGGIT_VERSION }}
+          github-token: ${{ github.token }}
+
+      - name: Upload test builds
+        uses: actions/upload-artifact@v4
+        with:
+          name: ${{ env.ARTIFACT_NAME }}
+          path: build/dist/*.7z
+          retention-days: 14
+          overwrite: true
+          if-no-files-found: error
+
+      - name: Post/update sticky PR comment
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $runUrl   = "https://github.com/${{ github.repository }}/actions/runs/${{ github.run_id }}"
+          $shortSha = "${{ github.event.pull_request.head.sha }}".Substring(0, 7)
+
+          $lines = @()
+          foreach ($f in Get-ChildItem build/dist/*.7z) {
+            $sha = (Get-FileHash $f.FullName -Algorithm SHA256).Hash.ToLower()
+            $lines += "- **$($f.Name)** — ``$sha``"
+          }
+
+          $body = (@(
+            "$env:COMMENT_MARKER"
+            "🤖 **Test builds ready for this PR**"
+            ""
+            "Download the installable mods from the **Artifacts** section of [this workflow run]($runUrl) (requires being signed in to GitHub), then install/enable in your MO2 test list."
+            ""
+          ) + $lines + @(
+            ""
+            "> **Before you test, avoid a stale install:**"
+            "> - **Check you downloaded _this_ build** — the artifact is deleted and rebuilt on every push, and browsers can serve a cached ``.7z`` of the same name. Confirm the SHA256 of your downloaded file matches the hash above (PowerShell: ``Get-FileHash <file>.7z``)."
+            "> - **Reinstall with _Replace_, not _Merge_** — if MO2 offers the choice, pick Replace (or remove the old mod first) so old loose files can't linger. Merge leaves un-overwritten files behind."
+            "> - **Watch duplicated scripts** — some ``.pex`` ship in more than one mod; if an older copy in another enabled mod wins the conflict by priority, the game loads the stale script. Update every mod that carries it."
+            ""
+            "_Built from commit ``$shortSha``. Refreshed on every push; removed when the PR is merged or closed._"
+          )) -join "`n"
+          $payload = Join-Path $env:RUNNER_TEMP 'pr-comment.json'
+          @{ body = $body } | ConvertTo-Json | Set-Content -Path $payload -Encoding utf8
+
+          $comments = gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments?per_page=100" | ConvertFrom-Json
+          $existing = $comments | Where-Object { $_.body -like "*$env:COMMENT_MARKER*" } | Select-Object -First 1
+          if ($existing) {
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$($existing.id)" --input $payload
+            Write-Host "Updated comment $($existing.id)"
+          } else {
+            gh api -X POST "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments" --input $payload
+            Write-Host "Created new comment"
+          }
+
+  cleanup:
+    if: github.event.action == 'closed'
+    runs-on: windows-latest
+    steps:
+      - name: Delete test-build artifacts for this PR
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $arts = gh api "repos/${{ github.repository }}/actions/artifacts?per_page=100" | ConvertFrom-Json
+          foreach ($a in ($arts.artifacts | Where-Object { $_.name -eq "$env:ARTIFACT_NAME" })) {
+            gh api -X DELETE "repos/${{ github.repository }}/actions/artifacts/$($a.id)"
+            Write-Host "Deleted artifact $($a.id)"
+          }
+
+      - name: Update sticky PR comment
+        shell: pwsh
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          $body = @(
+            "$env:COMMENT_MARKER"
+            "🧹 **Test builds removed** (PR closed). Grab the merged build from the automated release on ``main``."
+          ) -join "`n"
+          $payload = Join-Path $env:RUNNER_TEMP 'pr-comment.json'
+          @{ body = $body } | ConvertTo-Json | Set-Content -Path $payload -Encoding utf8
+
+          $comments = gh api "repos/${{ github.repository }}/issues/${{ github.event.pull_request.number }}/comments?per_page=100" | ConvertFrom-Json
+          $existing = $comments | Where-Object { $_.body -like "*$env:COMMENT_MARKER*" } | Select-Object -First 1
+          if ($existing) {
+            gh api -X PATCH "repos/${{ github.repository }}/issues/comments/$($existing.id)" --input $payload
+            Write-Host "Updated comment $($existing.id)"
+          } else {
+            Write-Host "No sticky comment to update."
+          }

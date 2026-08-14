@@ -1,0 +1,13 @@
+root = true
+
+# Spriggit YAML uses LF line endings and UTF-8. Keep diffs clean across OSes.
+[*.yaml]
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true
+trim_trailing_whitespace = false
+
+[*.{json,md}]
+end_of_line = lf
+charset = utf-8
+insert_final_newline = true

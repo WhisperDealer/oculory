@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<fomod>
+    <Name>Example Mod</Name>
+    <Author>Example Author</Author>
+    <Version>1.0.0</Version>
+    <Description>Template example: one new weapon, one vanilla override, one Papyrus script.</Description>
+</fomod>

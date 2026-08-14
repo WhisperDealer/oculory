@@ -1,0 +1,61 @@
+# Editor / OS
+.vscode/
+.venv/
+.DS_Store
+Thumbs.db
+
+# Machine-specific tool/modlist paths — never commit. Copy from tools.example.json.
+/.claude/config/tools.json
+
+# Wabbajack modlists installed into the repo — HUNDREDS of GB, third-party content.
+# Includes the game copy, mods, tools (Creation Kit, Papyrus compiler), and downloads.
+# Install anywhere and point .claude/config/tools.json at it; if you install under the
+# repo, keep it in this gitignored folder. See the modlist-install skill.
+/modlist/
+/downloads/
+
+# Binary Bethesda plugins — never commit. Edit the YAML, deserialize to build these.
+# CAUTION: Spriggit names its YAML cell/worldspace record *folders*
+# "<Name> - <FormID>_<Master>.esp" (or .esm/.esl), so a bare "*.esp" glob would ignore
+# the committed source tree. So: ignore plugin FILES with these extensions at any depth,
+# then re-include DIRECTORIES ending in them (the trailing "/" restricts to folders) so
+# their YAML contents stay tracked.
+*.esp
+*.esm
+*.esl
+!*.esp/
+!*.esm/
+!*.esl/
+
+# Build output only — build/staging/<release>/ is NOT ignored: it holds the committed FOMOD source
+# under build/staging/<release>/fomod/, so the tree in git looks like the real installed mod folder.
+# The derived parts inside it (.esp, compiled .pex) are still caught by the *.esp/*.esm/*.esl/*.pex
+# rules below. Only the packed archives are ignored here.
+/build/dist/
+
+# Bethesda archives — large binaries, never commit. Extract scripts with bsa-extract.
+*.bsa
+*.ba2
+
+# Packaged release archives (Nexus uploads etc.) — large binaries, rebuild from source.
+*.7z
+
+# Packaging build artifacts — derivable, do NOT commit.
+# Source of truth = Spriggit YAML + src/<ModName>/Scripts/source/*.psc.
+/dist/
+
+# Compiled Papyrus is ignored BY DEFAULT...
+*.pex
+
+# ...but a plugin that ships scripts must opt its compiled folder back in, because CI cannot run
+# the Creation Kit compiler (it needs the licensed base-game script source) and therefore packages
+# the committed .pex as-is. Recompile and re-commit whenever a .psc changes — build/build.ps1 fails
+# if a .pex is MISSING but cannot tell that one is STALE. See "CI build & release" in README.md.
+#
+# Add one pair of lines per script-shipping plugin (the /mod-new-plugin skill does this for you):
+!src/ExampleMod/Scripts/compiled/
+!src/ExampleMod/Scripts/compiled/*.pex
+
+# Reference decompiles — vanilla and third-party plugins serialized ONLY for FormKey lookups.
+# Large, regenerated locally from each machine's own copy of the source mod, never committed.
+/reference/

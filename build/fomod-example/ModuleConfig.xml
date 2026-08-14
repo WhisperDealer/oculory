@@ -1,0 +1,25 @@
+<config xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://qconsulting.ca/fo3/ModConfig5.0.xsd">
+    <moduleName>Example Mod</moduleName>
+    <moduleImage path="fomod\images\example.jpg"/>
+    <requiredInstallFiles>
+        <file source="ExampleMod.esp" destination="ExampleMod.esp"/>
+        <folder source="Scripts" destination="Scripts"/>
+    </requiredInstallFiles>
+    <installSteps order="Explicit">
+        <installStep name="Options">
+            <optionalFileGroups order="Explicit">
+                <group name="Installation" type="SelectExactlyOne">
+                    <plugins order="Explicit">
+                        <plugin name="Example Mod">
+                            <description>Template example: one new weapon, one vanilla override, one Papyrus script.</description>
+                            <image path="fomod\images\example.jpg"/>
+                            <typeDescriptor>
+                                <type name="Recommended"/>
+                            </typeDescriptor>
+                        </plugin>
+                    </plugins>
+                </group>
+            </optionalFileGroups>
+        </installStep>
+    </installSteps>
+</config>

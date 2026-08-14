@@ -1,0 +1,20 @@
+FormKey: 000801:ExampleMod.esp
+EditorID: ExampleMod_StartupQuest
+VirtualMachineAdapter:
+  Scripts:
+  - Name: ExampleModStartupScript
+    Properties:
+    - MutagenObjectType: ScriptObjectProperty
+      Name: RewardWeapon
+      Object: 000800:ExampleMod.esp
+    - MutagenObjectType: ScriptBoolProperty
+      Name: ShowNotification
+      Data: True
+  FileName: ''
+Name:
+  TargetLanguage: English
+  Value: Example Mod Startup
+Flags:
+- StartGameEnabled
+Priority: 10
+NextAliasID: 0

@@ -1,0 +1,20 @@
+# Spriggit YAML round-trips byte-for-byte and uses LF. Force LF on checkout/commit
+# so the binary plugins rebuilt by deserialize are stable across machines.
+*.yaml text eol=lf
+*.json text eol=lf
+*.md   text eol=lf
+.spriggit      text eol=lf
+.editorconfig  text eol=lf
+.gitattributes text eol=lf
+.gitignore     text eol=lf
+
+# Papyrus source is text. Let git normalize it; the CK tolerates either line ending.
+*.psc text
+
+# Never let git mangle binaries (these are gitignored anyway, belt-and-suspenders).
+*.esp binary
+*.esm binary
+*.esl binary
+*.pex binary
+*.bsa binary
+*.ba2 binary
