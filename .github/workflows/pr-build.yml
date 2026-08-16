@@ -122,7 +122,7 @@ jobs:
         run: |
           $body = @(
             "$env:COMMENT_MARKER"
-            "🧹 **Test builds removed** (PR closed). Grab the merged build from the automated release on ``main``."
+            "🧹 **Test builds removed** (PR closed). Installable archives are published on tagged `v*` releases."
           ) -join "`n"
           $payload = Join-Path $env:RUNNER_TEMP 'pr-comment.json'
           @{ body = $body } | ConvertTo-Json | Set-Content -Path $payload -Encoding utf8

@@ -67,7 +67,7 @@ src/                       # EVERY mod lives here — one folder per mod, add as
     Scripts/source/*.psc   # Papyrus source — COMMITTED
     Scripts/compiled/*.pex # COMMITTED via a .gitignore exception (CI can't compile Papyrus)
 build/                     # build.ps1 + manifest.json + committed FOMOD trees
-arch-docs/                 # design docs, record-pattern guide, generated build report
+arch-docs/                 # design docs, record-pattern guide
 reference/                 # gitignored — vanilla/third-party decompiles, LOOKUP ONLY
 modlist/                   # gitignored — an installed MO2 instance, hundreds of GB
 ```
