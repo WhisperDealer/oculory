@@ -311,8 +311,8 @@ Then in MO2: refresh, enable the mod and its `.esp`, set load order, and launch 
 
 ## CI build & release (GitHub Actions)
 
-`.github/workflows/build.yml` rebuilds every release archive on each push to `main` (publishing them
-to a **timestamped pre-release**), and cuts a named GitHub Release when you push a `v*` tag. It runs
+`.github/workflows/build.yml` rebuilds every release archive on each push to `main` — as a **smoke
+test only, publishing nothing** — and cuts a named GitHub Release when you push a `v*` tag. It runs
 on a free `windows-latest` runner and is driven by **`build/build.ps1`** + **`build/manifest.json`**
 (the plugin → release-tree mapping). The build script contains no mod-specific names — everything it
 builds comes from the manifest, so adding a plugin means editing JSON, not PowerShell.
@@ -320,9 +320,11 @@ builds comes from the manifest, so adding a plugin means editing JSON, not Power
 What CI does: download the pinned Spriggit CLI → `deserialize` every plugin's YAML into the
 committed `build/staging/<release>/` (whose `fomod/` subfolder is already checked into git; only
 the derived `.esp`/`.pex` are regenerated) → copy the committed `.pex` into that release's `Scripts/`
-→ `7z` each release into `build/dist/*.7z` → attach the archives to a
-GitHub Release (on `main`: a **pre-release** tagged `build-<UTC-timestamp>`, titled with the UTC
-build time; on a `v*` tag: a normal Release named for the tag) → regenerate `arch-docs/build-report.md`.
+→ `7z` each release into `build/dist/*.7z`. On a `v*` tag only, the archives are then attached to a
+new GitHub Release named for the tag.
+
+**Archives reach you in exactly two ways:** a **PR artifact** while a change is in review, and a
+**`v*` tag Release** when it ships. Nothing is published from `main`.
 
 **CI does NOT compile Papyrus.** The Creation Kit compiler + licensed base-game script source can't
 run in the cloud, so each script-shipping plugin's compiled scripts are **committed** at
@@ -335,14 +337,15 @@ run in the cloud, so each script-shipping plugin's compiled scripts are **commit
 Run the same build locally (uses the Spriggit CLI from `tools.json`):
 
 ```powershell
-pwsh build/build.ps1              # full build -> build/dist/*.7z + arch-docs/build-report.md
+pwsh build/build.ps1              # full build -> build/dist/*.7z (+ a size/SHA-256 summary)
 pwsh build/build.ps1 -CheckFomod  # only verify manifest <-> fomod/ModuleConfig.xml parity
                                   # (also checks installer image paths resolve + aren't progressive JPEGs)
 ```
 
-To release: `git tag v1.0 && git push origin v1.0` → the workflow attaches the archives to a new
-GitHub Release named `v1.0`. The **`github-release`** skill automates the curated version-release
-flow: changelog from the previous tag, promote the CI-built assets, clean up the `build-*` tags.
+To release: `git tag v1.0 && git push origin v1.0` → the workflow builds and attaches the archives to
+a new GitHub Release named `v1.0`. The **`github-release`** skill automates the curated flow:
+changelog from the previous tag, push the tag, watch the build, then replace CI's generated notes
+with the curated ones and mark the release Latest.
 
 **PR test builds.** `.github/workflows/pr-build.yml` runs the *same* build on every pull request
 (open/update) and attaches the archives to the PR as a downloadable **Actions artifact** named
@@ -382,7 +385,7 @@ bundle the verified CLI path and flags so you don't retype them.
 | `papyrus-compile` | Compile `.psc` → `.pex` (CK `PapyrusCompiler.exe`) |
 | `package-mod` | Assemble `dist/<ModName>/` (esp + scripts) for MO2 testing |
 | `mod-deploy` | **Deploy into an MO2 modlist and verify it landed** under the exact expected folder name |
-| `github-release` | Cut a curated `vX.Y.Z` release from the CI-built assets and tidy the `build-*` tags |
+| `github-release` | Cut a curated `vX.Y.Z` release — changelog, tag push, then curate CI's notes |
 
 **Subagents** (specialized agents with their own context):
 

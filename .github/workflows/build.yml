@@ -1,19 +1,20 @@
 name: Build & Package
 
 # Builds the two release archives (addon + patch collection) from Spriggit YAML and the
-# committed .pex, on every push to main and on version tags. Papyrus is NOT compiled here —
-# the .pex are committed (recompile + commit locally when a .psc changes; see README "CI build").
+# committed .pex. On main it is only a smoke test — nothing is published; a `v*` tag is the one
+# and only thing that cuts a GitHub Release. Test builds for review are the PR artifacts from
+# pr-build.yml. Papyrus is NOT compiled here — the .pex are committed (recompile + commit locally
+# when a .psc changes; see README "CI build").
 
 on:
   push:
     branches: [main]
-    paths-ignore:
-      - 'arch-docs/build-report.md'   # loop guard: the report commit must not re-trigger
     tags:
       - 'v*'
+  workflow_dispatch:                  # manual rebuild without pushing anything
 
 permissions:
-  contents: write   # commit build-report.md back to main; create Releases (timestamped on main, v* on tags)
+  contents: write   # create the Release on a v* tag
 
 concurrency:
   group: build-${{ github.ref }}
@@ -34,38 +35,6 @@ jobs:
         with:
           spriggit-version: ${{ env.SPRIGGIT_VERSION }}
           github-token: ${{ github.token }}
-
-      - name: Create timestamped Release (main only)
-        if: github.ref == 'refs/heads/main'
-        shell: pwsh
-        env:
-          GH_TOKEN: ${{ github.token }}
-        run: |
-          $now   = (Get-Date).ToUniversalTime()
-          $tag   = 'build-' + $now.ToString('yyyyMMdd-HHmmss')
-          $title = $now.ToString('yyyy-MM-dd HH:mm:ss') + ' UTC'
-          # @(...) is required: with exactly one archive this collapses to a scalar string,
-          # and splatting a scalar passes its first character as the argument instead of the path.
-          $assets = @(Get-ChildItem build/dist/*.7z | ForEach-Object { $_.FullName })
-          gh release create "$tag" @assets `
-            --target "$env:GITHUB_SHA" `
-            --title "$title" `
-            --notes "Automated rolling build of commit $env:GITHUB_SHA on main." `
-            --prerelease
-
-      - name: Commit build report (main only)
-        if: github.ref == 'refs/heads/main'
-        shell: pwsh
-        run: |
-          git config user.name  'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add arch-docs/build-report.md
-          if (git diff --cached --quiet) {
-            Write-Host 'build-report.md unchanged; nothing to commit.'
-          } else {
-            git commit -m 'ci: update build report [skip ci]'
-            git push
-          }
 
       - name: Create Release (tags only)
         if: startsWith(github.ref, 'refs/tags/v')

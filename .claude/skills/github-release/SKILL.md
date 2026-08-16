@@ -1,6 +1,6 @@
 ---
 name: github-release
-description: Cut a versioned GitHub release (e.g. v1.2.0) for this mod — build a changelog from the previous tag, attach the latest CI-built .7z assets, mark it Latest, and clean up the throwaway build-timestamp pre-releases/tags. Use when the user wants to "make a release", "cut vX.Y.Z", "publish a release", or tidy up the build-* tags.
+description: Cut a versioned GitHub release (e.g. v1.2.0) for this mod — build a changelog from the previous tag, push the version tag so CI builds and publishes the assets, then replace the generated notes with the curated changelog and mark it Latest. Use when the user wants to "make a release", "cut vX.Y.Z", or "publish a release".
 ---
 
 # Cut a GitHub release
@@ -22,16 +22,15 @@ python -c "import json;print('\n'.join(r['archiveName']+'.7z' for r in json.load
 
 GitHub replaces spaces with dots in uploaded asset filenames, so a manifest `archiveName` of
 `Example Mod` arrives as `Example.Mod.7z`. Confirm the actual names with
-`gh release view <buildTag> -R "$REPO" --json assets --jq '.assets[].name'` before referencing them.
+`gh release view vX.Y.Z -R "$REPO" --json assets --jq '.assets[].name'` once the release exists.
 
 ## Background: how CI releases work
 
-Every push to `main` triggers a GitHub Actions build that publishes a **pre-release** tagged
-`build-<UTCtimestamp>` (e.g. `build-20260724-202103`) carrying every release archive as an asset.
+Pushing a **`v*` tag** is the only thing that publishes. `.github/workflows/build.yml` builds every
+archive on that tag and creates the GitHub Release with `--generate-notes`, attaching each `.7z`.
 
-A versioned release (`vX.Y.Z`) is a curated, permanent **Latest** release that reuses the assets
-from the most recent matching `build-*` pre-release. Those `build-*` pre-releases are throwaway —
-delete them once their assets are promoted into a version.
+Pushes to `main` build as a smoke test but publish nothing, and PRs attach their archives as
+throwaway Actions artifacts. So a release is: **tag → wait for CI → curate the notes.**
 
 ## Steps
 
@@ -46,79 +45,75 @@ delete them once their assets are promoted into a version.
 ```bash
 git fetch --all --tags
 git pull --ff-only          # get main to origin tip
-git log --oneline --no-merges PREV..HEAD | grep -v 'ci: update build report'
+git log --oneline --no-merges PREV..HEAD
 ```
 
 Read the meaningful commits and group them for the changelog (plugin/record changes, scripts,
 FOMOD/installer, CI). **Call out which plugins actually changed** — for a multi-plugin repo, users
 care whether the main mod moved or whether this is a patches-only release.
 
-### 3. Pick the build whose assets you'll promote
+### 3. Check the commit you are about to tag is green
 
-- Find the newest `build-*` pre-release and resolve its commit:
-  `gh api "repos/$REPO/git/refs/tags/<buildTag>" --jq '.object.sha'`
-- Confirm that commit's **tree** matches what you're releasing. `main` may sit one or two docs-only
-  commits ahead (e.g. `ci: update build report [skip ci]` touching `arch-docs/build-report.md`) —
-  that's fine; the payload is identical. If real source changed after the last build, tell the user
-  the assets are stale and offer to wait for / trigger a fresh CI build rather than shipping old
-  binaries.
-- Download the assets to a scratch dir:
-  `gh release download <buildTag> -R "$REPO" --clobber`
+The tag build is the release build, so a red `main` means a failed release, not a bad asset:
+
+```bash
+gh run list -R "$REPO" --workflow build.yml --branch main --limit 3
+```
+
+If the newest `main` run failed, fix that before tagging.
 
 ### 4. Write the changelog notes
 
-Write a `notes.md` in the scratch dir. Structure it with `##` sections, lead with a one-line framing
+Write a `notes.md` in a scratch dir. Structure it with `##` sections, lead with a one-line framing
 of what the release is mainly about, and end with:
 
 ```
 **Full Changelog**: https://github.com/<REPO>/compare/PREV...vX.Y.Z
 ```
 
-### 5. Create the release
+### 5. Tag it — this publishes
+
+Confirm the version and the expected asset list with the user first: pushing the tag is what makes
+the release public.
 
 ```bash
-gh release create vX.Y.Z \
-  -R "$REPO" \
-  --target main \
-  --title "vX.Y.Z" \
-  --notes-file notes.md \
-  --latest \
-  <each downloaded .7z>
+git tag vX.Y.Z
+git push origin vX.Y.Z
 ```
 
-Use `--target main` (a branch name), **not** a short SHA — `gh` rejects short SHAs with
-`target_commitish is invalid`.
-
-### 6. Delete the throwaway build-* pre-releases and tags
+Then watch the build that cuts the release:
 
 ```bash
-for t in $(gh release list -R "$REPO" --limit 100 \
-             --json tagName --jq '.[] | select(.tagName|startswith("build-")) | .tagName'); do
-  gh release delete "$t" -R "$REPO" --yes --cleanup-tag
-done
-git tag -l 'build-*' | xargs -r git tag -d   # clean up any locally-fetched build tags
+gh run list -R "$REPO" --workflow build.yml --limit 3          # find the run for the tag
+gh run watch <runId> -R "$REPO" --exit-status
 ```
 
-`--cleanup-tag` removes the git tag along with the release. Leave the `vX.Y.Z` version tags alone.
+### 6. Replace the generated notes and mark it Latest
+
+CI creates the release with auto-generated notes. Overwrite them with the curated changelog:
+
+```bash
+gh release edit vX.Y.Z -R "$REPO" --notes-file notes.md --latest
+```
 
 ### 7. Verify
 
 ```bash
-gh release list -R "$REPO" --limit 20
-git ls-remote --tags origin 'build-*'   # should print nothing
+gh release view vX.Y.Z -R "$REPO" --json assets,isLatest,isDraft \
+  --jq '{latest:.isLatest, draft:.isDraft, assets:[.assets[].name]}'
 ```
 
-Confirm the new version is `Latest`, every expected asset is attached, and no `build-*` tags remain.
-Report the release URL to the user.
+Confirm the release is `Latest`, not a draft, and that every archive from `build/manifest.json` is
+attached. Report the release URL to the user.
 
 ## Notes / gotchas
 
-- **Short SHA as `--target` fails** — use `main` or a full 40-char SHA.
-- **Don't rebuild locally.** Promote the CI-built assets; a local Spriggit deserialize can drift
-  from what CI ships. Only fall back to a manual build if the user explicitly asks.
+- **A failed tag build leaves the tag but no release.** Delete the tag before retrying, or the
+  re-push is a no-op: `git push origin :refs/tags/vX.Y.Z && git tag -d vX.Y.Z`.
+- **Don't build locally and upload by hand.** Let the tag build produce the assets; a local Spriggit
+  deserialize can drift from what CI ships. Only fall back to a manual build if the user explicitly
+  asks.
 - Keep asset filenames exactly as CI produced them — that's what users and any install instructions
   expect.
-- Deleting a `build-*` release also deletes its assets; only do it after the version release exists
-  and is confirmed.
 - Publishing a release is **outward-facing and hard to reverse**. Confirm the version number and the
-  asset list with the user before running step 5.
+  asset list with the user before pushing the tag in step 5.
